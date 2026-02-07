@@ -1,18 +1,34 @@
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:news_c17_st/core/dio_interceptor.dart';
 import 'package:news_c17_st/models/news_response.dart';
 import 'package:news_c17_st/models/sources_response.dart';
+import 'package:news_c17_st/repository/home_repo.dart';
 import 'package:news_c17_st/screens/bloc/states.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../../core/constants.dart';
+import '../../core/constants.dart' as AppConstants;
 
 class HomeCubit extends Cubit<HomeStates> {
-  HomeCubit() : super(HomeInitState());
+  HomeRepo repo;
+
+  HomeCubit(this.repo) : super(HomeInitState()) {
+    dio.interceptors.add(PrettyDioLogger(request: true, responseBody: true));
+    dio.interceptors.add(MyInterceptor());
+  }
 
   static HomeCubit get(context) => BlocProvider.of(context);
 
-  Dio dio = Dio();
+  Dio dio = Dio(
+    BaseOptions(
+      baseUrl: AppConstants.BASEURL,
+      headers: {
+        // "x-api-key" : AppConstants.APIKEY,
+      },
+    ),
+  );
 
   int selectedIndex = 0;
   List<Sources> sources = [];
@@ -22,17 +38,12 @@ class HomeCubit extends Cubit<HomeStates> {
     selectedIndex = index;
     emit(HomeOnTabChanged());
     getNewsData(sources[selectedIndex].id ?? "");
-
   }
 
   Future<void> getNewsData(String sourceId) async {
     emit(GetNewsLoadingState());
     try {
-      Response response = await dio.get(
-        "$BASEURL/v2/everything?sources=$sourceId&apiKey=$APIKEY",
-      );
-
-      NewsResponse newsResponse = NewsResponse.fromJson(response.data);
+      NewsResponse newsResponse = await repo.getNewsData(sourceId);
 
       articles = newsResponse.articles ?? [];
       emit(GetNewsSuccessState());
@@ -41,15 +52,10 @@ class HomeCubit extends Cubit<HomeStates> {
     }
   }
 
-  Future<void> getSources() async {
+  Future<void> getSources(String categoryId) async {
     emit(GetSourcesLoadingState());
     try {
-      Response response = await dio.get(
-        "$BASEURL/v2/top-headlines/sources?apiKey=$APIKEY",
-      );
-
-      SourcesResponse sourcesResponse = SourcesResponse.fromJson(response.data);
-
+      SourcesResponse sourcesResponse = await repo.getSources(categoryId);
       sources = sourcesResponse.sources ?? [];
 
       emit(GetSourcesSuccessState());

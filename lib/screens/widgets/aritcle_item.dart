@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:news_c17_st/models/news_response.dart';
@@ -23,12 +24,16 @@ class ArticleItem extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(18),
-            child: Image.network(
-              article.urlToImage ?? "",
+            child:
+            CachedNetworkImage(
+              imageUrl:article.urlToImage ?? "",
               height: 220,
               width: double.infinity,
               fit: BoxFit.cover,
+              placeholder: (context, url) => Center(child: CircularProgressIndicator()),
+              errorWidget: (context, url, error) => Center(child: Icon(Icons.error)),
             ),
+
           ),
           Text(
             article.title ?? "",
@@ -48,7 +53,7 @@ class ArticleItem extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(article.author ?? ""),
+              Text(article.author?.split(" ").first ?? ""),
               Text(article.publishedAt?.substring(0, 10) ?? ""),
             ],
           ),
