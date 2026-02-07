@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:injectable/injectable.dart';
 import 'package:news_c17_st/core/dio_interceptor.dart';
 import 'package:news_c17_st/models/news_response.dart';
 import 'package:news_c17_st/models/sources_response.dart';
@@ -11,24 +12,14 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../../core/constants.dart';
 import '../../core/constants.dart' as AppConstants;
 
+@injectable
 class HomeCubit extends Cubit<HomeStates> {
   HomeRepo repo;
 
-  HomeCubit(this.repo) : super(HomeInitState()) {
-    dio.interceptors.add(PrettyDioLogger(request: true, responseBody: true));
-    dio.interceptors.add(MyInterceptor());
-  }
+  HomeCubit(this.repo) : super(HomeInitState()) ;
 
   static HomeCubit get(context) => BlocProvider.of(context);
 
-  Dio dio = Dio(
-    BaseOptions(
-      baseUrl: AppConstants.BASEURL,
-      headers: {
-        // "x-api-key" : AppConstants.APIKEY,
-      },
-    ),
-  );
 
   int selectedIndex = 0;
   List<Sources> sources = [];

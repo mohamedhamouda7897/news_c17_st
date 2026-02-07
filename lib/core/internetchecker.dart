@@ -1,55 +1,39 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-class InternetChecker {
-  // Private constructor
-  InternetChecker._internal();
+class InternetConnectivity {
+  InternetConnectivity._();
 
-  // Singleton instance
-  static final InternetChecker _instance = InternetChecker._internal();
+  static final InternetConnectivity _instance = InternetConnectivity._();
+  factory InternetConnectivity() => _instance;
 
-  // Factory constructor
-  factory InternetChecker() => _instance;
+  final StreamController<bool> _connectionStatusController =
+  StreamController<bool>.broadcast();
 
-  final Connectivity _connectivity = Connectivity();
-  StreamSubscription<List<ConnectivityResult>>? _subscription;
+  bool _isConnected = true;
 
-  /// Stream to listen for internet status changes
-  final StreamController<bool> _internetStatusController =
-      StreamController<bool>.broadcast();
+  bool get isConnected => _isConnected;
+  Stream<bool> get connectionStream => _connectionStatusController.stream;
 
-  Stream<bool> get internetStatusStream => _internetStatusController.stream;
-
-  /// Start listening to connectivity changes
   void initialize() {
-    _subscription = _connectivity.onConnectivityChanged.listen((result) async {
-      final hasInternet = await _hasActualInternet();
-      _internetStatusController.add(hasInternet);
+    _checkInitialConnection();
+
+    Connectivity().onConnectivityChanged.listen((results) {
+      _updateConnectionStatus(results);
     });
   }
 
-  /// Check internet once
-  Future<bool> hasInternet() async {
-    return await _hasActualInternet();
+  Future<void> _checkInitialConnection() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(results);
   }
 
-  /// Dispose resources (optional, usually not needed for app-wide singleton)
+  void _updateConnectionStatus(List<ConnectivityResult> results) {
+    _isConnected = !results.contains(ConnectivityResult.none);
+    _connectionStatusController.add(_isConnected);
+  }
+
   void dispose() {
-    _subscription?.cancel();
-    _internetStatusController.close();
-  }
-
-  /// Real internet check (DNS lookup)
-  Future<bool> _hasActualInternet() async {
-    try {
-      final result = await InternetAddress.lookup(
-        'google.com',
-      ).timeout(const Duration(seconds: 3));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
+    _connectionStatusController.close();
   }
 }
